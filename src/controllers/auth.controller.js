@@ -32,5 +32,37 @@ async function register(req, res) {
     name: user.name,
 },token, message: "User registered successfully", status: "success" })
 }
- 
-module.exports = { register };
+/**
+ *  - user login controller
+ * - post request to /api/auth/login
+ **/
+async function login(req, res) {
+    const { email, password } = req.body;
+
+    const user = await usermodel.findOne({ email: email }).select("+password")
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "User not found", status: "failed" });
+    }
+
+    const isMatch = await user.comparePassword(password)
+
+    if (!isMatch) {
+        return res
+        .status(401)
+        .json({ message: "Invalid credentials", status: "failed" });
+    }
+
+    const token = jwt.sign({userId: user._id}, process.env.JWT_SECRET, {expiresIn: "3d"})
+    res.cookie("token", token) 
+    res.status(200).json({ 
+      user: {
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+  },token, message: "User logged in successfully", status: "success" })
+} 
+
+module.exports = { register, login };
